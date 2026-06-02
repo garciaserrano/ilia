@@ -1,55 +1,84 @@
 # AGENTS.md
 
-## Project goal
+## Project name
 
-Build a simple but useful gym progress tracker web application for Chorla.
+Ilia
 
-The application reads workout data from a public Google Sheet stored in Google Drive and visualizes gym progress over time. The sheet is updated externally, including by voice workflows, so the app must always read the current live data from the Google Sheet. Do not require users to upload or commit a local CSV file.
+## Project description
 
-## Expected working mode
+Ilia is a simple personal gym progress tracker.
 
-You are expected to implement the whole feature, not just suggest snippets.
+The app is named "Ilia" as a personal homage to Ilia Topuria and the idea of becoming strong, consistent and hard to kill in the gym.
 
-Before finishing:
+This is a lightweight web application that reads workout data from a public Google Sheet and visualizes gym progress over time.
 
-- inspect the current repository structure
-- create or update all required files
-- run dependency installation when needed
-- run formatting/linting/build commands when available
-- fix all build errors
-- update documentation
-- keep the implementation simple and maintainable
+The app must be simple, useful and clean. Avoid overengineering.
+
+## Main goal
+
+Build a complete first version of the Ilia gym tracker.
+
+The application must read workout data live from a public Google Sheet stored in Google Drive. The user updates that sheet externally, often using voice input, so the app must not require uploading CSV files manually.
+
+The app should load the latest data from the Google Sheet every time the user opens or refreshes the web app.
 
 ## Tech stack
 
-Use this stack unless the existing repository already strongly suggests otherwise:
+Use:
 
 - Vue 3
 - TypeScript
 - Vite
 - Vuetify
-- Chart.js or another lightweight Vue-compatible chart library
-- Papa Parse, d3-dsv, or a similar lightweight CSV parser
+- Chart.js or another simple Vue-compatible chart library
 - No backend for the first version
-- No database
-- No authentication
 
-Use English for:
+All code, comments, variables, components, services and documentation must be written in English.
 
-- code
-- comments
-- component names
-- variable names
-- commit messages
-- documentation inside the repository
+The user may speak Spanish in prompts, but the project codebase must remain in English.
 
-## Data source
+## Architecture
 
-The application must read data from a public Google Sheet.
+Keep the project simple and maintainable.
 
-Do not commit a CSV file to the repository. Do not hardcode the Google Sheet URL in the source code.
+Recommended structure:
 
-Support these environment variables:
+```text
+src/
+  assets/
+  components/
+  composables/
+  constants/
+  layouts/
+  pages/
+  services/
+  types/
+  utils/
+```
+
+Suggested responsibilities:
+
+- `services/`: Google Sheet loading and CSV parsing.
+- `types/`: TypeScript interfaces.
+- `utils/`: date, number and volume calculations.
+- `components/`: reusable dashboard cards, filters, charts and tables.
+- `pages/`: main dashboard page.
+
+Avoid mixing parsing/business logic directly inside Vue components.
+
+## Google Sheet data source
+
+The app must read from a public Google Sheet.
+
+Do not commit CSV files.
+
+Do not require the user to manually export CSV files.
+
+Do not hardcode the Google Sheet URL in the source code.
+
+Use environment variables.
+
+Supported environment variables:
 
 ```bash
 VITE_GOOGLE_SHEET_ID=
@@ -57,263 +86,79 @@ VITE_GOOGLE_SHEET_GID=0
 VITE_GOOGLE_SHEET_CSV_URL=
 ```
 
-Implementation guidance:
+The app should support both modes:
 
-1. Prefer `VITE_GOOGLE_SHEET_CSV_URL` when provided.
-2. Otherwise build the live CSV export URL from `VITE_GOOGLE_SHEET_ID` and `VITE_GOOGLE_SHEET_GID`.
-3. The app should fetch the live CSV representation of the public Google Sheet at runtime.
-4. This is not a local CSV import feature. The source of truth is always the Google Sheet.
-5. Show a useful error message if the sheet is not public, the URL is missing, or the network request fails.
+1. If `VITE_GOOGLE_SHEET_CSV_URL` is present, use it directly.
+2. Otherwise, build the public CSV URL from:
+   - `VITE_GOOGLE_SHEET_ID`
+   - `VITE_GOOGLE_SHEET_GID`
 
-Suggested URL pattern when building from ID and GID:
+The preferred format is a live public Google Sheet CSV URL, for example:
 
 ```text
-https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={GID}
+https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}
 ```
 
-## Google Sheet schema
+or a published-to-web CSV URL:
 
-The app must support the current sheet format shown below.
+```text
+https://docs.google.com/spreadsheets/d/e/{PUBLISHED_ID}/pub?output=csv&gid={GID}
+```
 
-Required columns:
+The app must show a clear error if the sheet cannot be loaded.
 
-- Date
-- Session ID
-- Exercise
-- Muscle Group
-- Movement Pattern
-- Equipment
-- Set #
-- Reps
-- Weight kg
-- Source
-- Logged At
+## Expected Google Sheet columns
 
-Optional columns:
+The current Google Sheet has this structure:
 
-- Time
-- Notes
-- Pain/Discomfort
-
-Column names may contain spaces and symbols. Normalize headers safely, but keep the original values available when needed.
+```text
+Date
+Time
+Session ID
+Exercise
+Muscle Group
+Movement Pattern
+Equipment
+Set #
+Reps
+Weight kg
+Notes
+Pain/Discomfort
+Source
+Logged At
+```
 
 Example rows:
 
-```csv
-Date,Time,Session ID,Exercise,Muscle Group,Movement Pattern,Equipment,Set #,Reps,Weight kg,Notes,Pain/Discomfort,Source,Logged At
+```text
 2026-05-25,,20260525-BACK-01,Jalón al pecho,Back,Vertical Pull,Cable Machine,1,10,50,,,Voice,2026-05-28 14:55:17
 2026-05-25,,20260525-BACK-01,Jalón al pecho,Back,Vertical Pull,Cable Machine,2,9,50,,,Voice,2026-05-28 14:55:18
-2026-05-25,,20260525-BICEPS-01,Predicador,Biceps,Elbow Flexion,Machine,1,10,17.5,,,Voice,2026-05-28 14:55:26
+2026-05-25,,20260525-BACK-01,Jalón al pecho,Back,Vertical Pull,Cable Machine,3,8,50,,,Voice,2026-05-28 14:55:19
 ```
 
-## Domain rules
+The parser must support the exact column names above.
 
-### Training session definition
+The parser should be tolerant with empty values.
 
-A training session is all exercises performed on the same `Date`.
+The parser should trim text values.
 
-Do not treat each `Session ID` as a separate workout session. `Session ID` identifies a block, muscle group, or logging batch, but the app-level session is the date.
+The parser should convert numeric values safely.
 
-For example, if the sheet contains back, biceps and abs rows with the same `Date`, they belong to one training session.
+The parser should ignore completely empty rows.
 
-### Set-level data
+## Workout entry model
 
-Each row represents one set.
-
-Use these fields for calculations:
-
-- `Date`: training session date
-- `Exercise`: exercise name
-- `Muscle Group`: primary muscle group
-- `Movement Pattern`: movement classification
-- `Equipment`: equipment used
-- `Set #`: set number within the exercise/session block
-- `Reps`: repetitions performed
-- `Weight kg`: logged load in kg
-
-### Volume calculation
-
-Default volume calculation:
-
-```text
-set volume = reps * weightKg
-```
-
-Daily exercise volume:
-
-```text
-sum of all set volumes for the same Date + Exercise
-```
-
-Daily muscle group volume:
-
-```text
-sum of all set volumes for the same Date + Muscle Group
-```
-
-Do not automatically double dumbbell loads even if notes say `kg each arm`. Treat `Weight kg` as the logged value unless the app later introduces an explicit `Load Mode` column.
-
-### Estimated one-rep max
-
-When useful, estimate one-rep max using the Epley formula:
-
-```text
-estimated1RM = weightKg * (1 + reps / 30)
-```
-
-Use it carefully. Display it as an estimate, not as a real tested max.
-
-## Core features
-
-Implement the first version with these features.
-
-### Dashboard
-
-Show KPI cards for:
-
-- total training sessions, based on unique dates
-- total sets
-- total exercises tracked
-- total volume
-- last workout date
-- current weekly training frequency
-
-### Filters
-
-Add filters for:
-
-- date range
-- muscle group
-- exercise
-- movement pattern
-- equipment
-
-Filters should affect the charts and table.
-
-### Main charts
-
-Add the charts that provide the most value for tracking progress:
-
-1. Sessions per week
-   - Count unique workout dates per week.
-   - This measures consistency.
-
-2. Weekly volume by muscle group
-   - Sum `reps * weightKg` grouped by week and muscle group.
-   - This shows training distribution and workload.
-
-3. Exercise weight progression
-   - For a selected exercise, show the maximum logged weight per training date.
-   - This is the main strength progression chart.
-
-4. Exercise volume progression
-   - For a selected exercise, show total volume per training date.
-   - This helps detect progress beyond just weight.
-
-5. Sets by muscle group
-   - Sum sets by muscle group over the selected period.
-   - This helps spot imbalances.
-
-6. Movement pattern balance
-   - Sum sets by movement pattern over the selected period.
-   - This helps compare push/pull/core/legs/etc.
-
-7. Estimated 1RM progression
-   - Optional but recommended for exercises where it makes sense.
-   - Use the best estimated 1RM per date for the selected exercise.
-
-### Tables
-
-Include:
-
-- a workout log table showing all set rows
-- a grouped daily session summary table
-- an exercise summary table with best weight, total sets, total reps, total volume and last performed date
-
-### Personal bests
-
-Show simple personal best cards or highlights:
-
-- best weight per exercise
-- best estimated 1RM per exercise
-- best volume day per exercise
-
-Keep it simple. Do not over-engineer.
-
-## UX requirements
-
-- Dark theme by default
-- Visual style inspired by Visual Studio Code dark theme
-- Mobile-friendly layout
-- Fast loading
-- Clear empty states
-- Clear error states
-- Manual refresh button to reload the Google Sheet
-- Display last refresh time
-- Do not hide raw data from the user
-
-## Visual design
-
-Use a VS Code-like dark theme.
-
-Suggested colors:
-
-```text
-App background: #1e1e1e
-Sidebar / app bar: #252526
-Cards / surfaces: #2d2d30
-Elevated surfaces: #333333
-Border: #3c3c3c
-Primary accent: #007acc
-Secondary accent: #4fc1ff
-Text: #d4d4d4
-Muted text: #858585
-Success: #89d185
-Warning: #cca700
-Error: #f48771
-```
-
-Use compact, clean dashboard cards. Avoid bright white backgrounds.
-
-## Folder structure
-
-Prefer a structure similar to this:
-
-```text
-src/
-  components/
-    charts/
-    dashboard/
-    filters/
-    tables/
-  composables/
-  services/
-    googleSheetService.ts
-  types/
-    workout.ts
-  utils/
-    dates.ts
-    numbers.ts
-    workoutAggregations.ts
-  views/
-    DashboardView.vue
-  App.vue
-  main.ts
-```
-
-## Implementation details
-
-Create typed models similar to:
+Create a TypeScript model similar to:
 
 ```ts
-export interface WorkoutSet {
+export interface WorkoutEntry {
   date: string;
   time?: string;
-  sessionId: string;
+  sessionId?: string;
   exercise: string;
   muscleGroup: string;
-  movementPattern: string;
-  equipment: string;
+  movementPattern?: string;
+  equipment?: string;
   setNumber: number;
   reps: number;
   weightKg: number;
@@ -321,65 +166,311 @@ export interface WorkoutSet {
   painDiscomfort?: string;
   source?: string;
   loggedAt?: string;
-  volume: number;
-  estimatedOneRepMax?: number;
 }
 ```
 
-Build aggregation helpers for:
+## Session definition
 
-- unique training sessions by date
-- weekly buckets
-- total volume
-- volume by muscle group
-- sets by muscle group
-- movement pattern distribution
-- exercise progression
-- personal bests
+A training session is defined by all workout entries performed on the same `Date`.
 
-Keep parsing and aggregation logic separate from Vue components.
+Do not count each `Session ID` as a separate workout session.
 
-## Data quality
+For this project:
 
-Handle these cases gracefully:
+- One date equals one gym session.
+- Multiple muscle groups on the same date still count as one gym session.
+- Multiple exercises on the same date still count as one gym session.
+- Multiple sets on the same date still count as one gym session.
 
-- missing optional columns
-- empty notes
-- empty time
-- empty pain/discomfort
-- decimal weights such as `17.5`
-- Spanish exercise names
-- duplicate rows
-- invalid dates
-- invalid numeric values
-- Google Sheet not public
-- Google Sheet URL missing
-- network/CORS errors
+`Session ID` can be used for grouping exercises internally, but the main session count must be based on `Date`.
 
-When a row cannot be parsed, skip it and collect a warning. Show a small warning panel if rows were skipped.
+## Important calculation rules
 
-## README requirements
+### Sets
 
-The README must include:
+Each row represents one set.
 
-- project description
-- setup instructions
-- environment variable instructions
-- how to connect the Google Sheet
-- expected sheet columns
-- development commands
-- build commands
-- explanation of the session definition: all rows with the same Date are one training session
-- privacy warning about public Google Sheets
+Total sets = number of valid rows with exercise, reps and weight.
 
-## Quality checklist before finishing
+### Volume
 
-Before considering the task complete:
+Volume should be calculated as:
 
-- run `npm install` if dependencies are missing
-- run `npm run build`
-- fix all TypeScript/build errors
-- check that the README matches the real implementation
-- ensure `.env` is ignored by git
-- ensure `.env.example` exists
-- ensure no Google Sheet URL or personal data is hardcoded
+```text
+volume = reps * weightKg
+```
+
+Weekly or exercise volume should sum the volume of all matching sets.
+
+### Dumbbells and "each arm" notes
+
+Do not automatically double the weight when the note says something like:
+
+```text
+17.5 kg each arm
+8 kg each arm
+```
+
+The value in `Weight kg` should be treated as the logged weight.
+
+If needed, add a small UI note explaining that dumbbell weights are displayed as logged.
+
+### Estimated 1RM
+
+Estimated 1RM is optional.
+
+If implemented, use a simple formula such as Epley:
+
+```text
+estimated1RM = weightKg * (1 + reps / 30)
+```
+
+Only show it as an estimate, not as a strict strength metric.
+
+## Main features
+
+Implement a complete first version with the following features.
+
+### 1. App shell
+
+The app should be named:
+
+```text
+Ilia
+```
+
+Recommended subtitle:
+
+```text
+Gym Progress Tracker
+```
+
+The app should have a clean dashboard layout.
+
+The app should be responsive and usable on desktop and mobile.
+
+### 2. Dark theme
+
+Use a dark theme inspired by Visual Studio Code.
+
+The visual style should feel like:
+
+- dark background
+- slightly lighter cards
+- subtle borders
+- muted secondary text
+- clean typography
+- blue accent color
+- no flashy colors
+- no childish gym design
+
+Suggested palette:
+
+```text
+Background: #1e1e1e
+Surface: #252526
+Surface elevated: #2d2d30
+Border: #3e3e42
+Primary accent: #007acc
+Text primary: #d4d4d4
+Text secondary: #9cdcfe
+Success accent: #4ec9b0
+Warning accent: #dcdcaa
+Error accent: #f48771
+```
+
+Do not use a bright white background.
+
+### 3. Dashboard summary cards
+
+Show at least:
+
+- Total sessions
+- Total exercises
+- Total sets
+- Total volume
+- Last workout date
+- Current training streak or weeks tracked, if easy to implement
+
+Remember:
+
+Total sessions = number of unique `Date` values.
+
+### 4. Filters
+
+Add filters for:
+
+- Date range
+- Muscle group
+- Exercise
+- Movement pattern
+- Equipment
+
+Filters should affect charts and tables.
+
+### 5. Charts
+
+Add the most useful charts for gym progress.
+
+Minimum expected charts:
+
+#### Sessions per week
+
+Shows how many gym sessions were completed each week.
+
+Based on unique dates, not row count.
+
+#### Weekly volume by muscle group
+
+Shows total volume per week grouped by muscle group.
+
+Useful to see training distribution.
+
+#### Weight progression by exercise
+
+User selects an exercise and the chart shows weight over time.
+
+Use the best set or max logged weight per date for that exercise.
+
+#### Volume progression by exercise
+
+User selects an exercise and the chart shows total volume over time for that exercise.
+
+#### Sets by muscle group
+
+Shows how many sets were performed per muscle group in the selected period.
+
+#### Movement pattern balance
+
+Shows distribution by movement pattern, for example:
+
+- Vertical Pull
+- Horizontal Pull
+- Vertical Push
+- Elbow Flexion
+- Core Flexion
+
+Optional chart:
+
+#### Estimated 1RM progression
+
+Only if simple and clean.
+
+### 6. Tables
+
+Add a workout entries table.
+
+The table should show:
+
+- Date
+- Exercise
+- Muscle Group
+- Movement Pattern
+- Equipment
+- Set #
+- Reps
+- Weight kg
+- Notes
+- Pain/Discomfort
+- Source
+- Logged At
+
+Add sorting where easy.
+
+Keep it readable in dark mode.
+
+### 7. Exercise detail section
+
+Add a simple exercise-focused section.
+
+When the user selects one exercise, show:
+
+- Last performed date
+- Max logged weight
+- Best estimated 1RM, if implemented
+- Total sets
+- Total volume
+- Chart with weight progression
+- Chart with volume progression
+
+### 8. Loading and error states
+
+The app must include:
+
+- Loading state while reading the Google Sheet
+- Empty state if no rows are found
+- Error state if the Google Sheet URL is missing or cannot be loaded
+- Parsing warning if some rows are skipped
+
+### 9. Refresh
+
+Add a manual refresh button.
+
+The button should reload the data from the Google Sheet.
+
+Suggested label:
+
+```text
+Refresh sheet
+```
+
+### 10. README
+
+Update README with:
+
+- Project description
+- Setup steps
+- Environment variables
+- Google Sheet expected structure
+- How sessions are calculated
+- How to run locally
+- How to build
+
+## Quality requirements
+
+Before finishing, run:
+
+```bash
+npm run build
+```
+
+Fix all build errors.
+
+The final code should have no TypeScript errors.
+
+Use clean, readable code.
+
+Avoid unnecessary dependencies.
+
+Prefer simple calculations that are easy to validate.
+
+## Out of scope for first version
+
+Do not add:
+
+- Authentication
+- User accounts
+- Backend API
+- Database
+- Google OAuth
+- Editing workout entries from the app
+- Writing back to Google Sheets
+- Complex AI analysis
+- Payment features
+- Social features
+
+This first version is read-only.
+
+The user updates the Google Sheet externally.
+
+Ilia only reads, analyzes and visualizes the progress.
+
+## Final response expected from Codex
+
+When finished, summarize:
+
+- What was implemented
+- How to configure `.env`
+- How to run the app
+- Any assumptions made
+- Any known limitations

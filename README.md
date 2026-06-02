@@ -1,268 +1,219 @@
-# Gym Tracker - Chorla
+# Ilia
 
-A simple gym progress tracker that reads workout data from a public Google Sheet and visualizes progress over time.
+**Ilia** is a simple gym progress tracker that reads workout data from a public Google Sheet and visualizes progress over time.
 
-The goal of this project is to keep Google Sheets as the source of truth while providing a cleaner dashboard with progress charts, filters and summaries.
+The app is named as a personal homage to Ilia Topuria and the idea of becoming stronger through consistency.
 
-## Main idea
+## Goal
 
-The Google Sheet is updated externally, including by voice workflows. This app does not require uploading or committing a CSV file. Instead, it fetches the live CSV representation of the public Google Sheet at runtime.
+Ilia is designed to be a lightweight personal dashboard.
+
+The user logs gym workouts into a Google Sheet, often using voice input from another tool. This app does not edit the sheet. It only reads the live public sheet and displays useful progress metrics, charts and tables.
+
+## Main features
+
+- Reads live workout data from a public Google Sheet
+- No manual CSV upload required
+- Dark theme inspired by Visual Studio Code
+- Dashboard summary cards
+- Filters by date, muscle group, exercise, movement pattern and equipment
+- Sessions per week chart
+- Weekly volume by muscle group chart
+- Weight progression by exercise chart
+- Volume progression by exercise chart
+- Sets by muscle group chart
+- Movement pattern balance chart
+- Workout entries table
+- Exercise detail section
+- Manual sheet refresh button
 
 ## Tech stack
-
-Recommended implementation stack:
 
 - Vue 3
 - TypeScript
 - Vite
 - Vuetify
-- Chart.js or another lightweight chart library
-- Papa Parse, d3-dsv, or a similar CSV parser
+- Chart.js or another Vue-compatible chart library
 
-The first version should not include a backend, database or authentication.
+## Google Sheet structure
 
-## Google Sheet connection
-
-The app supports two ways of connecting to the public Google Sheet.
-
-### Option 1: direct CSV URL
-
-Create a `.env` file:
-
-```bash
-VITE_GOOGLE_SHEET_CSV_URL="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/gviz/tq?tqx=out:csv&gid=0"
-```
-
-### Option 2: Sheet ID and GID
-
-Create a `.env` file:
-
-```bash
-VITE_GOOGLE_SHEET_ID="YOUR_SHEET_ID"
-VITE_GOOGLE_SHEET_GID="0"
-```
-
-The app can build this runtime URL:
+The app expects a public Google Sheet with these columns:
 
 ```text
-https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={GID}
+Date
+Time
+Session ID
+Exercise
+Muscle Group
+Movement Pattern
+Equipment
+Set #
+Reps
+Weight kg
+Notes
+Pain/Discomfort
+Source
+Logged At
 ```
+
+Example:
+
+```text
+Date,Time,Session ID,Exercise,Muscle Group,Movement Pattern,Equipment,Set #,Reps,Weight kg,Notes,Pain/Discomfort,Source,Logged At
+2026-05-25,,20260525-BACK-01,Jalón al pecho,Back,Vertical Pull,Cable Machine,1,10,50,,,Voice,2026-05-28 14:55:17
+2026-05-25,,20260525-BACK-01,Jalón al pecho,Back,Vertical Pull,Cable Machine,2,9,50,,,Voice,2026-05-28 14:55:18
+2026-05-25,,20260525-BACK-01,Jalón al pecho,Back,Vertical Pull,Cable Machine,3,8,50,,,Voice,2026-05-28 14:55:19
+```
+
+Each row represents one set.
+
+## Session calculation
+
+A workout session is calculated by date.
+
+That means:
+
+```text
+1 unique Date = 1 workout session
+```
+
+The app does not count each `Session ID` as a separate workout session.
+
+For example, if the same date contains back, biceps and abs entries, that still counts as one gym session.
+
+## Volume calculation
+
+Training volume is calculated as:
+
+```text
+volume = reps * weightKg
+```
+
+Each row is one set.
+
+Total volume is the sum of all matching sets.
+
+## Dumbbell note
+
+If the `Notes` column says something like:
+
+```text
+17.5 kg each arm
+```
+
+the app does not automatically double the value.
+
+The `Weight kg` column is treated as the logged weight.
 
 ## Environment variables
 
-Create `.env` from `.env.example`:
+Create a `.env` file based on `.env.example`.
 
 ```bash
 cp .env.example .env
 ```
 
-Expected variables:
+You can configure the sheet in two ways.
+
+## Option 1: use a full public CSV URL
 
 ```bash
-VITE_GOOGLE_SHEET_ID=
-VITE_GOOGLE_SHEET_GID=0
-VITE_GOOGLE_SHEET_CSV_URL=
+VITE_GOOGLE_SHEET_CSV_URL="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv&gid=0"
+VITE_GOOGLE_SHEET_ID=""
+VITE_GOOGLE_SHEET_GID=""
 ```
 
-`VITE_GOOGLE_SHEET_CSV_URL` takes priority when provided.
+## Option 2: use Sheet ID and GID
 
-Do not commit `.env` to git.
-
-## Google Sheet requirements
-
-The sheet must be public or available to anyone with the link.
-
-Expected columns:
-
-| Column | Required | Description |
-| --- | --- | --- |
-| Date | Yes | Training date in `YYYY-MM-DD` format |
-| Time | No | Optional time of the workout or set |
-| Session ID | Yes | Logging batch/session identifier from the sheet |
-| Exercise | Yes | Exercise name |
-| Muscle Group | Yes | Main muscle group |
-| Movement Pattern | Yes | Movement category, for example `Vertical Pull` |
-| Equipment | Yes | Equipment used |
-| Set # | Yes | Set number |
-| Reps | Yes | Repetitions performed |
-| Weight kg | Yes | Logged load in kg |
-| Notes | No | Optional notes |
-| Pain/Discomfort | No | Optional discomfort notes |
-| Source | Yes | Source of the log, for example `Voice` |
-| Logged At | Yes | Timestamp when the row was logged |
-
-Example:
-
-```csv
-Date,Time,Session ID,Exercise,Muscle Group,Movement Pattern,Equipment,Set #,Reps,Weight kg,Notes,Pain/Discomfort,Source,Logged At
-2026-05-25,,20260525-BACK-01,Jalón al pecho,Back,Vertical Pull,Cable Machine,1,10,50,,,Voice,2026-05-28 14:55:17
-2026-05-25,,20260525-BACK-01,Jalón al pecho,Back,Vertical Pull,Cable Machine,2,9,50,,,Voice,2026-05-28 14:55:18
-2026-05-25,,20260525-BICEPS-01,Predicador,Biceps,Elbow Flexion,Machine,1,10,17.5,,,Voice,2026-05-28 14:55:26
+```bash
+VITE_GOOGLE_SHEET_ID="YOUR_SHEET_ID"
+VITE_GOOGLE_SHEET_GID="0"
+VITE_GOOGLE_SHEET_CSV_URL=""
 ```
 
-## Important domain rule: training sessions
+The Sheet ID is the long ID in the Google Sheet URL.
 
-A training session is defined as all rows with the same `Date`.
-
-Do not count each `Session ID` as a different workout. For this app, if the same date contains back, biceps and abs rows, all of them are part of the same training session.
-
-`Session ID` is still useful for grouping logged blocks, but it is not the app-level training session definition.
-
-## Progress calculations
-
-Default set volume:
+Example Google Sheet URL:
 
 ```text
-set volume = reps * weightKg
+https://docs.google.com/spreadsheets/d/1abcDEFghiJKL1234567890/edit#gid=0
 ```
 
-Daily exercise volume:
+In that case:
 
-```text
-sum of all set volumes for the same Date + Exercise
+```bash
+VITE_GOOGLE_SHEET_ID="1abcDEFghiJKL1234567890"
+VITE_GOOGLE_SHEET_GID="0"
 ```
 
-Weekly muscle group volume:
+## Important privacy note
 
-```text
-sum of all set volumes for the same week + Muscle Group
-```
+The Google Sheet must be public or published to the web.
 
-Estimated one-rep max, when used:
+Do not put sensitive information in the sheet.
 
-```text
-estimated1RM = weightKg * (1 + reps / 30)
-```
+If the sheet is public, anyone with access to the public URL may be able to read the data.
 
-Estimated 1RM must be displayed as an estimate, not as a real tested max.
-
-For dumbbell exercises, do not automatically double the weight even if notes say `kg each arm`. Treat `Weight kg` as the logged value unless the sheet later adds an explicit load mode column.
-
-## Recommended first version features
-
-### Dashboard
-
-- Total training sessions, based on unique dates
-- Total sets
-- Total exercises tracked
-- Total volume
-- Last workout date
-- Current weekly training frequency
-
-### Filters
-
-- Date range
-- Muscle group
-- Exercise
-- Movement pattern
-- Equipment
-
-### Charts
-
-Recommended charts for the first version:
-
-1. Sessions per week
-   - Counts unique workout dates per week.
-   - Useful for consistency tracking.
-
-2. Weekly volume by muscle group
-   - Sums `reps * weightKg` by week and muscle group.
-   - Useful for workload distribution.
-
-3. Exercise weight progression
-   - Shows the maximum logged weight per date for a selected exercise.
-   - Useful for strength progression.
-
-4. Exercise volume progression
-   - Shows total volume per date for a selected exercise.
-   - Useful because progress is not only more weight.
-
-5. Sets by muscle group
-   - Shows total sets per muscle group in the selected period.
-   - Useful for detecting imbalances.
-
-6. Movement pattern balance
-   - Shows sets by movement pattern.
-   - Useful for seeing whether training is too biased toward specific patterns.
-
-7. Estimated 1RM progression
-   - Optional but recommended for exercises where it makes sense.
-
-### Tables
-
-- Raw workout log table
-- Daily training session summary
-- Exercise summary table with best weight, total sets, total reps, total volume and last performed date
-
-### Personal bests
-
-- Best weight per exercise
-- Best estimated 1RM per exercise
-- Best volume day per exercise
-
-## Visual style
-
-The app should use a dark theme inspired by Visual Studio Code.
-
-Suggested colors:
-
-```text
-App background: #1e1e1e
-Sidebar / app bar: #252526
-Cards / surfaces: #2d2d30
-Elevated surfaces: #333333
-Border: #3c3c3c
-Primary accent: #007acc
-Secondary accent: #4fc1ff
-Text: #d4d4d4
-Muted text: #858585
-Success: #89d185
-Warning: #cca700
-Error: #f48771
-```
-
-The UI should be compact, clean, responsive and readable on mobile.
-
-## Development commands
-
-Install dependencies:
+## Install dependencies
 
 ```bash
 npm install
 ```
 
-Run locally:
+## Run locally
 
 ```bash
 npm run dev
 ```
 
-Build:
+Then open the local URL shown in the terminal.
+
+Usually:
+
+```text
+http://localhost:5173
+```
+
+## Build
 
 ```bash
 npm run build
 ```
 
-Preview production build:
+## Preview production build
 
 ```bash
 npm run preview
 ```
 
-## Suggested Codex prompt
+## Recommended first Codex prompt
 
-Use this as the first task for Codex:
+After placing `AGENTS.md`, `README.md`, `.gitignore` and `.env.example` in your repository, start Codex from that repository and use this prompt:
 
 ```text
-Read AGENTS.md carefully and implement the full first version of this gym progress tracker.
+Read AGENTS.md carefully and implement the full first version of Ilia.
 
-Create a Vue 3 + TypeScript + Vite + Vuetify app that reads the live public Google Sheet data at runtime, parses the workout rows, applies the session definition from AGENTS.md, and builds the dashboard, filters, charts and tables described there.
+Create a Vue 3 + TypeScript + Vite + Vuetify app that reads live workout data from the public Google Sheet configured through environment variables.
 
-Do not add a backend. Do not hardcode the sheet URL. Do not commit CSV files. Use environment variables. Use a VS Code-like dark theme. Run npm run build before finishing and fix all errors.
+The app must parse the workout rows using the schema from AGENTS.md, calculate sessions by unique Date, and build the dashboard, filters, charts, exercise detail section and workout table described there.
+
+Use a Visual Studio Code-like dark theme.
+
+Do not add a backend.
+Do not hardcode the Google Sheet URL.
+Do not commit CSV files.
+Run npm run build before finishing and fix all errors.
 ```
 
-## Privacy warning
+## Current limitations
 
-A public Google Sheet can be accessed by anyone who has the link. Do not store sensitive personal, medical, financial or private information in the sheet unless you are comfortable with that exposure.
+The first version is read-only.
 
-If the data becomes sensitive later, the app should move to a private Google Sheets API integration with OAuth or a small backend service.
+It does not:
+
+- Write back to Google Sheets
+- Edit workout entries
+- Require login
+- Use a backend
+- Use Google OAuth
+- Store data locally
